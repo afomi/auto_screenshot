@@ -5,3 +5,7 @@ gemspec
 
 gem 'capybara'
 gem 'json'
+
+group :development do 
+  gem 'pry'
+end

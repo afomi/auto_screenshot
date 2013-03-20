@@ -1,42 +1,47 @@
 Auto Screenshot
 ===============
 
-A small library designed to help document web products.
+A small library designed to help the document web products.
 
 ## Usage
 
-From console, within the /auto_screenshot directory:
-    
-    irb
-    load auto_screenshot.rb
-
-This works in 2 ways:
-
-Method 1: Pass in an array of URL's
-
-    urls = ["http://ryanwold.net", "http://afomi.com", "http://www.granicus.com"]
-    s = Screenshot.new(:urls => urls) # => an array of URL's as strings
-
-Or
-
-Method 2: Read from a .json file
-
-    s = Screenshot.new(:file => "test.json")  # => an array of URL's as strings
-    s.go # => screenshots are saved to the /screenshots directory as .png files
-
     gem install auto_screenshot
-    rake screenshots --all
-    
-screenshot based on a .rb file or pass arguments
 
-    load 'auto_screenshot.rb'
-    s = Screenshot.new(:file => "test.json")
-    s.go
+### Basics
 
-Alternatively, use a ruby file to generate a @links array of URL strings for each page (see dmap.rb as an example)
+Pass in an array of URL's,
 
-    load 'dmap.rb'
-    s = Screenshot.new(:urls => $links)
+    urls = ["http://domain.lvh.me:3000", "http://domain.lvh.me:3000/link/1"]
+    s = Screenshot.new(:urls => urls)
+
+read from a [.json](/links.json) file,
+
+    s = Screenshot.new(:file => "test.json")  # an array of URL's as string    
+
+or, read a [.rb](/links.rb) file.
+
+    s = Screenshot.new(:file => "/users/name/path/to/links.rb") 
+
+Run Capybara (Selenium) and Firefox. 
+
+    s.go # screenshots are saved to the /screenshots directory as .png files.
+
+### Logging in and custom stuff
+
+[Action Map](/action_map.rb) - an action map allows you to specify certain URL's that call some ruby code that you write.  I built this to accomodate logins. It can be used for whatever.
+
+    s = Screenshot.new({ :file       => "/some/links/in/ruby.rb",
+                         :action_map => "/users/name/path/to/action_map.rb" })
+
+load 'lib/auto_screenshot.rb'
+
+    s = AutoScreenshot::Screenshot.new({
+      :links => "/users/ryanw/Desktop/ci.rb",
+      :action_mappings => "/path/to/action_mappings.json",
+      :action_map => "/path/to/action_map.rb",
+      :folder => "/path/to/screenshot_images"
+    })
+
 
 #### Remember
 
