@@ -7,39 +7,45 @@ require 'capybara/dsl'
 module AutoScreenshot
 
   class Screenshot
-
     include Capybara::DSL
     Capybara.default_driver = :selenium
 
-    attr_accessor :urls, :folder, :action_map_path, :action_map
+    attr_accessor :links, :folder, :action_mappings, :action_map
 
-    def initialize(opts = { :urls => [], :file => "", :rb_file => nil, :action_map_path => "", :folder => "" })
-      raise Exception, "please pass in an array of urls like {:urls => []}, or a file, like {:file => \"test.json\"}" unless opts[:urls] or opts[:file] or opts[:rb_file]
+    # Pass in an array of URL's, with http(s)
+    #   or
+    # Pass in a .json or .rb file of links
+    #
+    # pass in an action_map
+    # pass in a folder path to where to store the screenshots
+    def initialize(opts = { :links => "", :action_mappings => [], :action_map => "", :folder => "" })
+      raise Exception, "please pass in an array of urls like {:urls => []}, or a file, like {:file => \"test.json\"}" unless opts[:links]
 
-      if opts[:urls]
-        @urls = opts[:urls]
-      elsif opts[:rb_file]
-        require_relative opts[:rb_file]
-        @urls = $links
-      elsif opts[:file]
-        @urls = JSON.parse(File.open(opts[:file], "r").read)
+      @links = opts[:links]
+      if @links.class == Array
+        @links = links
+      elsif links.class == String
+        ext = File.extname(@links)
+        if ext == ".rb"
+          load @links
+          @links = $links
+        elsif ext == ".json"
+          @links = JSON.parse(File.open(@links, "r").read)
+        end
       end
 
-      @action_map_path = opts[:action_map_path]
+      @action_mappings = set_action_mappings(opts[:action_mappings])
+      load opts[:action_map].to_s
       @folder = opts[:folder] ||= "screenshots"
-      @action_map = action_map
     end
 
     def go
       errors = []
-      @urls.each do |url|
+      @links.each do |url|
         begin
           puts "Getting #{url}"
           visit "#{url}"
 
-          page.wait_until do
-            page.evaluate_script 'jQuery.active == 0'
-          end
           snap
           actions(url)
         rescue => err
@@ -52,36 +58,26 @@ module AutoScreenshot
       puts errors
     end
 
-    def action_map
-      json = File.open(@action_map_path).read
+    # Load an action map .json file
+    # see /action_mappings.json as an example
+    # {
+    #   "url":<method in action_map.rb>
+    # }
+    def set_action_mappings(path)
+      return {} if path && path.empty?
+
+      json = File.open(path).read
       hash = JSON.parse(json)
     end
 
-
-    # custom actions for Granicus
-    # something custom based on a page.  pages must be ordered in the URL array though
+    # do a specific action for a url, like login
     def actions(url)
-      # do a specific action for a url, like login
-
-      if action_map.has_key?(url)
-        self.send(action_map[url])
+      if action_mappings.has_key?(url)
+        sleep 10.0
+        # self.send(action_mappings[url])
       else
         nil
       end
-    end
-
-    def login
-      click_on "Sign in / up"
-      sleep 2.0
-      fill_in "user_email", :with => "ryanw@granicus.com"
-      fill_in "user_password", :with => ""
-      click_on "Sign in"
-      sleep 2.0
-      wait_for_ajax
-    end
-
-    def wait
-      sleep 15.0
     end
 
     def grab_links(url)
@@ -99,7 +95,7 @@ module AutoScreenshot
       page.execute_script('$(window).width(1200)')
       name = page.current_url.gsub("https:\/\/", "").gsub("http:\/\/", "").gsub(":", "").gsub("\/", "-").gsub("&", "-").gsub("?", "_").gsub("dev.lvh.me3000-", "").gsub("admin.lvh.me3000-", "").gsub("localhost3001-", "").gsub("dev.dev.lvh.me3000-", "").gsub("test.civicideasstaging.com", "")
       Capybara.current_session.driver.browser.manage.window.resize_to(1000, 800)
-      Capybara.current_session.driver.browser.save_screenshot("#{File.dirname(__FILE__)}/#{@folder}/#{name}.png")
+      Capybara.current_session.driver.browser.save_screenshot("#{@folder}/#{name}.png")
     end
 
   end
