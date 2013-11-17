@@ -6,6 +6,7 @@ gemspec
 gem 'capybara'
 gem 'json'
 
-group :development do 
+group :development, :test do
   gem 'pry'
+  gem 'rspec'
 end
