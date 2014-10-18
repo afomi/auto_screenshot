@@ -16,3 +16,4 @@ test/
 tmp
 screenshots
 .DS_Store
+.rvmrc
