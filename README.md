@@ -1,49 +1,84 @@
-Auto Screenshot
-===============
+# AutoScreenshot
 
-A small library designed to help the document web products.
+Built to capture screenshots of a list of webpages in an automated fashion.
 
-## Usage
+## Installation
+
+Add this line to your application's Gemfile:
+
+    gem 'auto_screenshot'
+
+And then run:
+
+    bundle
+
+Or install it yourself as:
 
     gem install auto_screenshot
 
-### Basics
+## Options
 
-Pass in an array of URL's,
+### URLs
 
-    urls = ["http://domain.lvh.me:3000", "http://domain.lvh.me:3000/link/1"]
-    s = Screenshot.new(:urls => urls)
+An array of valid URLs. Pretty simple.
 
-read from a [.json](/links.json) file,
+### Folder
 
-    s = Screenshot.new(:file => "test.json")  # an array of URL's as string    
+`folder` is where the screenshots will be saved.  The default location is the `screenshots` folder based on where the program is run. But, the example below passes a specific folder path to save screenshots at.
 
-or, read a [.rb](/links.rb) file.
+    client = AutoScreenshot::Screenshot.new(:folder => '/path/to/folder/')
 
-    s = Screenshot.new(:file => "/users/name/path/to/links.rb") 
+### Action Map
 
-Run Capybara (Selenium) and Firefox. 
+`action_map` is a ruby hash. each key of the hash is a full URL string
+and each key is a symbol. The symbol corresponds to a name of a method like `wait`. Here is an example:
 
-    s.go # screenshots are saved to the /screenshots directory as .png files.
+    action_map = {
+      "http://example.com/page" => :wait
+    }
 
-### Logging in and custom stuff
+And a custom method could look like:
 
-[Action Map](/action_map.rb) - an action map allows you to specify certain URL's that call some ruby code that you write.  I built this to accomodate logins. It can be used for whatever.
+    def wait
+      sleep 10 # To allow you to login or something
+    end
 
-    s = Screenshot.new({ :file       => "/some/links/in/ruby.rb",
-                         :action_map => "/users/name/path/to/action_map.rb" })
+## Usage
 
-load 'lib/auto_screenshot.rb'
+AutoScreenshot saves screenshots of webpages as .png files in a folder.  Create a Screenshot client and specify an array of URLs to capture.
 
-    s = AutoScreenshot::Screenshot.new({
-      :links => "/users/ryanw/Desktop/ci.rb",
-      :action_mappings => "/path/to/action_mappings.json",
-      :action_map => "/path/to/action_map.rb",
-      :folder => "/path/to/screenshot_images"
-    })
+#### Create a Client. Then set options.
+
+    client = AutoScreenshot::Screenshot.new #=> get a Screenshot object
+    client.urls = ["http://google.com, http://github.com"]
+    client.folder = "/custom/folder/path"
+    client.action_map = {
+      "http://example.com/do-something-custom-at-this-url" => :custom_method
+    }
 
 
-#### Remember
+or
 
-* Ensure your website is running when testing locally.
-* Don't abuse anybody's website.
+#### Create a Client with options.
+
+    client = AutoScreenshot::Screenshot.new(:urls => [], :folder => "/custom/folder/path", :action_map => {@url_string => :custom_method})
+
+## Contributing
+
+1. Say [hi](https://twitter.com/randw) and let me know you're using aut
+1. Fork it
+1. Create your feature branch (`git checkout -b my-new-feature`)
+1. Commit your changes (`git commit -am 'Add some feature'`)
+1. Push to the branch (`git push origin my-new-feature`)
+1. Create new Pull Request
+
+### During Development
+
+Run this from the `auto_screenshot/` directory.
+
+    irb
+    load 'lib/auto_screenshot.rb'
+
+And, to build the .gem:
+
+    gem build auto_screenshot.gemspec
