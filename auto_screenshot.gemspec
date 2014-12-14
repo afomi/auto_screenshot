@@ -11,9 +11,10 @@ Gem::Specification.new do |gem|
   gem.description   = %q{'Automatically screenshot webpages'}
   gem.summary       = %q{'Automating webpage screenshots'}
   gem.homepage      = "http://github.com/afomi/auto_screenshot"
+  gem.license       = "MIT"
 
-  gem.files         = 'git ls-files'.split($/)
-  gem.executables   = gem.files.grep(%r{^bin/}).map{ |f| File.basename(f) }
+  gem.files         = `git ls-files -z`.split("\x0")
+  gem.executables   = gem.files.grep(%r{^bin/}) { |f| File.basename(f) }
   gem.test_files    = gem.files.grep(%r{^(test|spec|features)/})
   gem.require_paths = ["lib"]
 
