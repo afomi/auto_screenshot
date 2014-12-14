@@ -1,51 +1,48 @@
 require "auto_screenshot/version"
-
-require 'uri'
-require 'json'
 require 'capybara/dsl'
+require 'json'
+require 'uri'
 
 module AutoScreenshot
 
   class Screenshot
+    attr_accessor :urls, :folder, :action_map
+
     include Capybara::DSL
     Capybara.default_driver = :selenium
 
-    attr_accessor :links, :folder, :action_mappings, :action_map
-
-    # Pass in an array of URL's, with http(s)
-    #   or
-    # Pass in a .json or .rb file of links
+    # urls: an array of full URL strings
+    # folder: where to store the files
+    # action_map: a hash where
+    #               keys are URL's that are visited
+    #               values are symbols for custom actions
     #
-    # pass in an action_map
-    # pass in a folder path to where to store the screenshots
-    def initialize(opts = { :links => "", :action_mappings => [], :action_map => "", :folder => "" })
-      raise Exception, "please pass in an array of urls like {:urls => []}, or a file, like {:file => \"test.json\"}" unless opts[:links]
-
-      @links = opts[:links]
-      if @links.class == Array
-        @links = links
-      elsif links.class == String
-        ext = File.extname(@links)
-        if ext == ".rb"
-          load @links
-          @links = $links
-        elsif ext == ".json"
-          @links = JSON.parse(File.open(@links, "r").read)
-        end
-      end
-
-      @action_mappings = set_action_mappings(opts[:action_mappings])
-      load opts[:action_map].to_s
-      @folder = opts[:folder] ||= "screenshots"
+    # see the `wait` method for an example of mapping an action
+    def initialize(options = {
+                    urls: [],
+                    folder: nil,
+                    action_map: {}
+                  })
+      @urls = options[:urls]
+      @folder = options[:folder] ||= "screenshots"
+      @action_map = options[:action_map]
     end
 
-    def go
+    # Passing `dry_run=true`
+    # only lists the URL's that would be processed
+    # but does not take screenshots
+    def go(dry_run = false)
+      raise 'no URLs specified' if @urls.empty?
+
       errors = []
-      @links.each do |url|
+
+      @urls.each do |url|
+        p url; next if dry_run
+
         begin
           puts "Getting #{url}"
           visit "#{url}"
-
+          sleep 3.0 # arbitrary sleep to allow heavily ajax-y pages to load
           snap
           actions(url)
         rescue => err
@@ -55,31 +52,32 @@ module AutoScreenshot
         end
       end
 
-      puts errors
+      errors
     end
 
-    # Load an action map .json file
-    # see /action_mappings.json as an example
-    # {
-    #   "url":<method in action_map.rb>
-    # }
-    def set_action_mappings(path)
-      return {} if path && path.empty?
-
-      json = File.open(path).read
-      hash = JSON.parse(json)
-    end
-
-    # do a specific action for a url, like login
+    # Custom actions, based on a page url
+    # do a specific action for a url, like #wait
     def actions(url)
-      if action_mappings.has_key?(url)
-        sleep 10.0
-        # self.send(action_mappings[url])
+      if action_map && action_map.has_key?(url)
+        self.send(action_map[url])
       else
         nil
       end
     end
 
+    # Define custom actions by monkey-patching.
+    # Use the custom actions
+    # by passing action_map: { :url => :method }
+    #
+    # class AutoScreenshot::Screenshot
+    #   def your_custom_action
+    #   end
+    # end
+    def wait
+      sleep 10.0
+    end
+
+    # TODO: Helper Method
     def grab_links(url)
       links = []
 
@@ -91,13 +89,39 @@ module AutoScreenshot
       links.uniq
     end
 
-    def snap
-      page.execute_script('$(window).width(1200)')
-      name = page.current_url.gsub("https:\/\/", "").gsub("http:\/\/", "").gsub(":", "").gsub("\/", "-").gsub("&", "-").gsub("?", "_").gsub("dev.lvh.me3000-", "").gsub("admin.lvh.me3000-", "").gsub("localhost3001-", "").gsub("dev.dev.lvh.me3000-", "").gsub("test.civicideasstaging.com", "")
-      Capybara.current_session.driver.browser.manage.window.resize_to(1000, 800)
-      Capybara.current_session.driver.browser.save_screenshot("#{@folder}/#{name}.png")
+    # passing a `descriptor`
+    # adds a string to the filename, so you can name a sub-state for a page
+    def snap(descriptor = "")
+      name = clean_url(page.current_url)
+
+      # Descriptor
+      name = name + (descriptor.empty? ? "" : "-state-#{descriptor}")
+      p "#snap", "name", name unless name.empty?
+
+      set_window_size
+
+      # Ensure @folder exists
+      FileUtils.mkdir_p(@folder) unless File.exists?(@folder)
+  Capybara.current_session.driver.browser.save_screenshot("#{@folder}/#{name}.png")
+    end
+
+
+    private
+
+    def clean_url(full_url)
+      p "#clean_url", full_url
+
+      full_url.gsub("https:\/\/", "")
+              .gsub("http:\/\/", "")
+              .gsub(":", "")
+              .gsub("\/", "-")
+              .gsub("&", "-")
+              .gsub("?", "_")
+    end
+
+    def set_window_size
+      Capybara.current_session.driver.browser.manage.window.resize_to(1200, 800)
     end
 
   end
-
 end
